@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"regexp"
 )
 
 func parseInput(filePath string) (string, error) {
@@ -15,6 +14,7 @@ func parseInput(filePath string) (string, error) {
 }
 
 func main() {
+	// lol, did this one in vim
 	data, err := parseInput("/Users/samtang/Programming/advent-of-code-20204/day3/input.txt")
 	if err != nil {
 		fmt.Print(err)

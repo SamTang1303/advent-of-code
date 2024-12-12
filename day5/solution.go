@@ -3,40 +3,58 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 )
 
-func parseInput(filePath string) ([][]int, error) {
+func setCwdToSourceFile() {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		fmt.Println("Error getting caller")
+		return
+	}
+	dir := filepath.Dir(filename)
+
+	// Change the current working directory
+	err := os.Chdir(dir)
+	if err != nil {
+		fmt.Println("Error changing directory:", err)
+		return
+	}
+}
+
+func parseInput(filePath string) ([][2]int, [][]int, error) {
 	input, err := os.ReadFile(filePath)
 	if err != nil {
-		return [][]int{}, fmt.Errorf("Problem reading file")
+		return [][2]int{}, [][]int{}, fmt.Errorf("Problem reading file")
 	}
 	inputStr := string(input)
-	lines := strings.Split(inputStr, "\n")
-	var data [][]int
-	for _, val := range lines {
-		numsStr := strings.Fields(val)
-		nums_int := make([]int, len(numsStr))
-		if len(numsStr) == 0 {
-			continue
-		}
-		for i := range numsStr {
-			nums_int[i], err = strconv.Atoi(numsStr[i])
-			if err != nil {
-				fmt.Print("Error converting string")
-				break
-			}
-		}
-		data = append(data, nums_int)
+	dividedInput := strings.Split(inputStr, "\n\n")
+	rulesStr, updatesStr := strings.Split(dividedInput[0], "\n"), strings.Split(dividedInput[1], "\n")
+	rules := make([][2]int, len(rulesStr))
+	updates := make([][]int, len(updatesStr))
+	for i, line := range rulesStr {
+		splitLine := strings.Split(line, "|")
+		rules[i][0], _ = strconv.Atoi(splitLine[0])
+		rules[i][1], _ = strconv.Atoi(splitLine[1])
 	}
-	return data, nil
+	for i, line := range updatesStr {
+		splitLine := strings.Split(line, ",")
+		for _, val := range splitLine {
+			num, _ := strconv.Atoi(val)
+			updates[i] = append(updates[i], num)
+		}
+	}
+	return rules, updates, nil
 }
 
 func main() {
-	data, err := parseInput("/Users/samtang/Programming/advent-of-code-20204/day2/input.txt")
+	setCwdToSourceFile()
+	rules, updates, err := parseInput("input")
 	if err != nil {
 		return
 	}
-	fmt.Print(data)
+	fmt.Print(rules, "\n\n----------------------------\n\n", updates)
 }

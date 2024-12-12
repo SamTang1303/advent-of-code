@@ -50,11 +50,38 @@ func parseInput(filePath string) ([][2]int, [][]int, error) {
 	return rules, updates, nil
 }
 
+type Set map[int]struct{}
+
 func main() {
 	setCwdToSourceFile()
 	rules, updates, err := parseInput("input")
 	if err != nil {
 		return
 	}
-	fmt.Print(rules, "\n\n----------------------------\n\n", updates)
+	answer := 0
+	illegalPairs := make(map[int]Set)
+	for _, rule := range rules {
+		illegalFollowsSet, exists := illegalPairs[rule[0]]
+		if !exists {
+			illegalPairs[rule[0]] = Set{rule[1]: struct{}{}}
+			continue
+		}
+		illegalFollowsSet[rule[1]] = struct{}{}
+	}
+updateLoop:
+	for _, update := range updates {
+		for i, num := range update {
+			if _, exists := illegalPairs[num]; !exists {
+				continue
+			}
+			for _, followingNum := range update[:i] {
+				if _, exists := illegalPairs[num][followingNum]; exists {
+					continue updateLoop
+				}
+			}
+		}
+		middleIndex := len(update) / 2
+		answer += update[middleIndex]
+	}
+	fmt.Print(answer)
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -52,6 +53,29 @@ func parseInput(filePath string) ([][2]int, [][]int, error) {
 
 type Set map[int]struct{}
 
+type Update struct {
+	pages           []int
+	comparisonPairs *map[int]Set
+	wasIncorrect    *bool
+}
+
+func comparePages(page1, page2 int, comparisonPairs *map[int]Set) bool {
+	if _, exists := (*comparisonPairs)[page1][page2]; exists {
+		return true
+	}
+	if _, exists := (*comparisonPairs)[page2][page1]; exists {
+		return false
+	}
+	return true
+}
+
+func (a Update) Len() int { return len(a.pages) }
+func (a Update) Swap(i, j int) {
+	*a.wasIncorrect = true
+	a.pages[i], a.pages[j] = a.pages[j], a.pages[i]
+}
+func (a Update) Less(i, j int) bool { return comparePages(a.pages[i], a.pages[j], a.comparisonPairs) } // Change to '>' for descending
+
 func main() {
 	setCwdToSourceFile()
 	rules, updates, err := parseInput("input")
@@ -59,29 +83,28 @@ func main() {
 		return
 	}
 	answer := 0
-	illegalPairs := make(map[int]Set)
+	comparisonPairs := make(map[int]Set)
 	for _, rule := range rules {
-		illegalFollowsSet, exists := illegalPairs[rule[0]]
+		illegalFollowsSet, exists := comparisonPairs[rule[0]]
 		if !exists {
-			illegalPairs[rule[0]] = Set{rule[1]: struct{}{}}
+			comparisonPairs[rule[0]] = Set{rule[1]: struct{}{}}
 			continue
 		}
 		illegalFollowsSet[rule[1]] = struct{}{}
 	}
-updateLoop:
-	for _, update := range updates {
-		for i, num := range update {
-			if _, exists := illegalPairs[num]; !exists {
-				continue
-			}
-			for _, followingNum := range update[:i] {
-				if _, exists := illegalPairs[num][followingNum]; exists {
-					continue updateLoop
-				}
-			}
+	for i := range updates {
+		boolRef := false
+		update := Update{
+			pages:           updates[i],
+			comparisonPairs: &comparisonPairs,
+			wasIncorrect:    &boolRef,
 		}
-		middleIndex := len(update) / 2
-		answer += update[middleIndex]
+		sort.Sort(update)
+		if !*update.wasIncorrect {
+			continue
+		}
+		middleIndex := len(update.pages) / 2
+		answer += update.pages[middleIndex]
 	}
 	fmt.Print(answer)
 }

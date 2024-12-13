@@ -107,4 +107,5 @@ func main() {
 		answer += update.pages[middleIndex]
 	}
 	fmt.Print(answer)
+	// Part two answer: 5169
 }

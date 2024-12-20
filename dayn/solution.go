@@ -30,7 +30,8 @@ func parseInput(filePath string) ([]string, error) {
 		return []string{""}, fmt.Errorf("Problem reading file")
 	}
 	inputStr := strings.TrimSpace(string(input))
-	return strings.Split(inputStr, "\n"), nil
+	lines := strings.Split(inputStr, "\n")
+	return lines, nil
 }
 
 func main() {

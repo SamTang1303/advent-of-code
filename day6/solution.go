@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 func setCwdToSourceFile() {
@@ -48,23 +50,38 @@ func hash(position [2]int, direction Direction) [4]int {
 
 type Set[K comparable] map[K]struct{}
 
-var seen Set[[4]int] = make(map[[4]int]struct{})
-
-func findLoop(position [2]int, direction Direction, room *[]string) bool {
+func findLoop(position [2]int, direction Direction, room *[]string, seen *Set[[4]int]) bool {
+	// lineRun := []rune((*room)[position[1]])
+	// lineRun[position[0]] = 'X'
+	// (*room)[position[1]] = string(lineRun)
 	stateHash := hash(position, direction)
-	if _, exists := seen[stateHash]; exists {
+	if _, exists := (*seen)[stateHash]; exists {
 		return true
 	}
-	seen[stateHash] = struct{}{}
+	(*seen)[stateHash] = struct{}{}
 	newPos := [2]int{position[0] + direction.x(), position[1] + direction.y()}
 	if invalidSquare(newPos, room) {
 		return false
 	}
 	if (*room)[newPos[1]][newPos[0]] == '#' {
 		direction = direction * complex(0, 1)
-		return findLoop(position, direction, room)
+		return findLoop(position, direction, room, seen)
 	}
-	return findLoop(newPos, direction, room)
+	return findLoop(newPos, direction, room, seen)
+}
+
+func computeSolution(x, y int, wg *sync.WaitGroup, input *[]string, solutionsIndex int, character rune, startingPosition [2]int, solutions *[16900][]string, seen *Set[[4]int]) {
+	defer wg.Done()
+
+	if character == '^' || character == '#' {
+		return
+	}
+	lineRunes := []rune((*input)[y])
+	lineRunes[x] = '#'
+	(*input)[y] = string(lineRunes)
+	if findLoop(startingPosition, Direction(complex(0, -1)), &(*input), seen) {
+		solutions[solutionsIndex] = (*input)
+	}
 }
 
 func main() {
@@ -75,23 +92,36 @@ func main() {
 		return
 	}
 	startingPosition := [2]int{91, 69}
+	solutions := [16900][]string{}
 	answer := 0
+	start := time.Now()
+	solutionsIndex := 0
+
+	var wg sync.WaitGroup
 	for y, line := range input {
 		for x, character := range line {
-			if character == '^' || character == '#' {
-				continue
-			}
-			lineRunes := []rune(input[y])
-			lineRunes[x] = '#'
-			input[y] = string(lineRunes)
-			if findLoop(startingPosition, Direction(complex(0, -1)), &input) {
-				answer += 1
-			}
-			lineRunes[x] = '.'
-			input[y] = string(lineRunes)
-			seen = Set[[4]int]{}
+			solutionsIndex += 1
+			wg.Add(1)
+			copyInput := make([]string, len(input))
+			copy(copyInput, input)
+			seen := Set[[4]int]{}
+
+			go computeSolution(x, y, &wg, &copyInput, solutionsIndex, character, startingPosition, &solutions, &seen)
 		}
 	}
-	fmt.Print("\n\nAnswer: ", answer)
-	//Part two answer: 1309
+	wg.Wait()
+	solutionRooms := [][]string{}
+	for _, val := range solutions {
+		if val != nil {
+			answer += 1
+			solutionRooms = append(solutionRooms, val)
+
+		}
+	}
+	fmt.Print("\n\nTook: ", time.Since(start), "\n\n")
+	fmt.Print("\n\nAnswer: ", len(solutionRooms), "\n\n")
+	for _, line := range solutionRooms[1] {
+		fmt.Print(line, "\n")
+	}
+	// Part two answer: 1309
 }

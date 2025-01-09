@@ -72,15 +72,17 @@ func inBounds(point Point, input *[]string) bool {
 }
 
 func findAntinodes(input *[]string, antenna1, antenna2 Point) []Point {
-	antinodes := make([]Point, 0, 2)
+	antinodes := make([]Point, 0, 5)
 	diffVec := diff(antenna1, antenna2)
-	antinode1 := antenna2.move(diffVec)
-	antinode2 := antenna1.move(diffVec.neg())
-	if inBounds(antinode1, input) {
+	antinode1 := antenna1
+	antinode2 := antenna2
+	for inBounds(antinode1, input) {
 		antinodes = append(antinodes, antinode1)
+		antinode1 = antinode1.move(diffVec.neg())
 	}
-	if inBounds(antinode2, input) {
+	for inBounds(antinode2, input) {
 		antinodes = append(antinodes, antinode2)
+		antinode2 = antinode2.move(diffVec)
 	}
 	return antinodes
 }
